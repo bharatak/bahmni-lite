@@ -1,0 +1,260 @@
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+
+plugins {
+    id 'nebula.ospackage' version '4.8.0'
+    id 'com.bmuschko.docker-remote-api' version '3.2.8'
+    id 'java'
+}
+
+group 'org.bahmni.lite'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'idea'
+
+sourceCompatibility = 1.8
+
+project.ext.tomcatVersion = "8.0.12";
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven {
+        url 'http://mavenrepo.openmrs.org/nexus/content/repositories/public'
+    }
+    maven {
+        url 'https://oss.sonatype.org/content/repositories'
+    }
+}
+
+//BEGIN - openmrs rpm tasks
+
+task extractWar(dependsOn: 'downloadMRSWar', type: Copy) {
+    from zipTree(file("${buildDir}/resources/main/openmrs.war"))
+    into file("${buildDir}/openmrs")
+}
+
+task normalizeJarName(type: Copy) {
+    from "${buildDir}" + "/libs/"
+    into "${buildDir}" + "/libs/"
+    include(project.name + '-' + project.bahmniRelease + '.jar')
+    rename(project.name + '-' + project.bahmniRelease + '.jar', 'bahmni-lite.jar')
+}
+
+task downloadMRSWar {
+    onlyIf { !(new File("${buildDir}/resources/main/openmrs.war").exists()) }
+
+    doLast {
+        new File("${buildDir}/resources/main").mkdirs();
+        configurations.mrsWar.resolve().each { file ->
+            if (file.getName().contains("openmrs")) {
+                file.renameTo(new File("${buildDir}/resources/main/openmrs.war"))
+            }
+        }
+    }
+}
+//END - openmrs rpm tasks
+
+//BEGIN - bahmni-emr rpm tasks
+task extractOmods(type: Copy) {
+    from zipTree(file("${projectDir}/resources/distro-"+project.bahmniRelease+"-SNAPSHOT-distro.zip"))
+    into file("${buildDir}/distro/")
+}
+//END - bahmni-emr rpm tasks
+
+//644 for all files other than executables
+//744 for all files which are executables
+//755 for all folders
+
+ospackage {
+    packageName = 'bahmni-openmrs'
+    release = System.getenv('GO_PIPELINE_COUNTER') ?: "1"
+    arch = NOARCH
+    os = LINUX
+    user = 'root'
+
+    into '/opt/openmrs'
+
+    preInstall file("${projectDir}/scripts/preinstall.sh")
+    postInstall file("${projectDir}/scripts/postinstall.sh")
+    preUninstall file("${projectDir}/scripts/preuninstall.sh")
+
+    from("${buildDir}/libs/openmrs.jar") {
+        fileMode = 0644
+        createDirectoryEntry = true
+        into 'lib/'
+    }
+
+    from("${projectDir}/resources/") {
+        fileMode = 0644
+        createDirectoryEntry = true
+        into 'etc'
+        exclude('initDB.sh')
+    }
+
+    from("${projectDir}/scripts/rpm/") {
+        fileMode = 0744
+        createDirectoryEntry = true
+        into 'bin'
+    }
+
+    from("${projectDir}/resources/placeholder") {
+        createDirectoryEntry = true
+        into 'run'
+    }
+
+    from("${projectDir}/resources/placeholder") {
+        createDirectoryEntry = true
+        into 'log'
+    }
+
+    from("${buildDir}/resources/main/openmrs.war") {
+        fileMode = 0644
+        createDirectoryEntry = true
+        into '.'
+    }
+
+    from("${projectDir}/resources/placeholder") {
+        createDirectoryEntry = true
+        into 'openmrs'
+    }
+
+    from("${projectDir}/resources/initDB.sh") {
+        fileMode = 0744
+        createDirectoryEntry = true
+        into 'openmrs/scripts'
+    }
+
+    from("${projectDir}/resources/openmrs_demo_dump.sql") {
+        fileMode = 0644
+        createDirectoryEntry = true
+        into 'openmrs/scripts'
+    }
+
+    from("${projectDir}/resources/openmrs_clean_dump.sql") {
+        fileMode = 0644
+        createDirectoryEntry = true
+        into 'openmrs/scripts'
+    }
+
+    //BEGIN - bahmni-emr
+    from("${buildDir}/distro/distro-"+project.bahmniRelease+"-SNAPSHOT") {
+        fileMode = 0644
+        createDirectoryEntry = true
+        into 'modules'
+        include('addresshierarchy-*.omod')
+        include('appframework-*.omod')
+        include('bahmnicore-*.omod')
+        include('bedmanagement-*.omod')
+        include('calculation-*.omod')
+        include('emrapi-*.omod')
+        include('event-*.omod')
+        include('owa-*.omod')
+        include('htmlwidgets-*.omod')
+        include('idgen-*.omod')
+        include('idgen-webservices-*.omod')
+        include('metadatamapping-*.omod')
+        include('metadatasharing-*.omod')
+        include('openmrs-atomfeed-*.omod')
+        include('providermanagement-*.omod')
+        include('reference-data-*.omod')
+        include('reporting-*.omod')
+        include('serialization.xstream-*.omod')
+        include('uicommons-*.omod')
+        include('uiframework-*.omod')
+        include('uilibrary-*.omod')
+        include('webservices.rest-*.omod')
+        include('bacteriology-*.omod')
+        include('rulesengine-*.omod')
+        include('episodes-*.omod')
+        include('legacyui-*.omod')
+        include('reportingcompatibility-*.omod')
+        include('bahmni.ie.apps-*.omod')
+        include('auditlog-*.omod')
+        include('appointments-*.omod')
+    }
+
+    from("${projectDir}/resources/") {
+        fileMode = 0644
+        createDirectoryEntry = true
+        into 'etc'
+        include('bahmni-emr.conf')
+    }
+
+    from("${projectDir}/resources/") {
+        fileMode = 0744
+        into 'etc'
+        include('run-liquibase.sh')
+    }
+
+    from("${projectDir}/resources/"){
+        fileMode = 0644
+        include('bahmnicore.properties')
+    }
+
+    from("${projectDir}/resources/") {
+        fileMode = 0755
+        into 'etc'
+        include('blank-user.png')
+    }
+
+
+    from("${projectDir}/resources/") {
+        fileMode = 0755
+        into 'etc'
+        include('emr_ssl.conf')
+    }
+
+    //END - bahmni-emr
+}
+
+buildRpm {
+    dependsOn 'build', 'normalizeJarName', 'downloadMRSWar', 'extractOmods'
+    requires('unzip')
+    requires('mysql-community-client', "5.6", GREATER | EQUAL)
+}
+
+buildDeb {
+    dependsOn 'build', 'normalizeJarName', 'downloadMRSWar', 'extractOmods'
+}
+
+
+configurations {
+    all*.exclude(group: 'com.sun.jdmk', module: 'jmxtools')
+    all*.exclude(group: 'com.sun.jmx', module: 'jmxri')
+    all*.exclude(group: 'javax.jms', module: 'jms')
+    all*.exclude(group: 'javax.mail', module: 'mail')
+    mrsWar
+}
+
+dependencies {
+    compile "org.apache.tomcat.embed:tomcat-embed-core:${tomcatVersion}",
+            "org.apache.tomcat.embed:tomcat-embed-logging-juli:${tomcatVersion}",
+            "org.apache.tomcat.embed:tomcat-embed-jasper:${tomcatVersion}",
+            "org.apache.tomcat:tomcat-jasper:${tomcatVersion}",
+            "org.apache.tomcat:tomcat-jasper-el:${tomcatVersion}",
+            "org.apache.tomcat:tomcat-jsp-api:${tomcatVersion}"
+    mrsWar "org.openmrs.web:openmrs-webapp:${openmrsVersion}@war"
+    }
+
+
+jar {
+    manifest {
+        attributes 'Main-Class': "org.bahmni.deployment.launch.BahmniLite"
+    }
+    from {
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+
+task buildDockerImage(type: DockerBuildImage) {
+    dependsOn 'buildRpm'
+    inputDir = file("${projectDir}")
+    tag = 'bahmni-lite:latest'
+}
+
+task buildAll(){
+    dependsOn 'build','buildDockerImage'
+}

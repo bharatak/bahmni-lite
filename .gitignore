@@ -1,0 +1,31 @@
+# Directories #
+######################
+build/
+bin
+out
+src
+resources/bahmni_config
+resources/bahmniapps
+resources/main
+resources/distro*.zip
+tomcat.8080/
+.gradle
+gradle
+.vagrant
+.git
+
+# OS generated files #
+######################
+.DS_Store
+
+# IDE generated files #
+######################
+.settings/
+.classpath
+.project
+.README*
+.idea
+*.iml
+*.ipr
+*.iws
+/.nb-gradle/

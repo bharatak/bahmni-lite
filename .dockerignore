@@ -1,0 +1,29 @@
+# Directories #
+######################
+build/classes
+build/dependency-cache
+build/distributions
+build/tmp
+bin
+out
+src
+.gradle
+gradle
+.vagrant
+.git
+
+# OS generated files #
+######################
+.DS_Store
+
+# IDE generated files #
+######################
+.settings/ 
+.classpath 
+.project 
+.README* 
+.idea 
+*.iml 
+*.ipr
+*.iws
+/.nb-gradle/
