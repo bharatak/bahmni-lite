@@ -26,15 +26,15 @@ Bahmni Lite aims to provide a simple and lighter version of Bahmni EMR that is p
 - Run the following commands
 ```sh
 docker network create bahmni-network
-docker run --name bahmni -p 8050:8050 -p 8000:8000 --network=bahmni-network -d bahmni/lite:latest
+docker run --name=mysql --network=bahmni-network -e MYSQL_ROOT_PASSWORD=password -e MYSQL_ROOT_HOST=% -d mysql/mysql-server:5.6
+docker run --name helper --rm --network=bahmni-network -e MYSQL_HOST=mysql -e MYSQL_ROOT_PASSWORD=password -it bharatak/bahmni-mysql-starter:latest
+docker run --name emr -p 8050:8050 -p 8000:8000 --network=bahmni-network -d bharatak/bahmni:latest
 ```
-- Install mysql docker container and restore a database (TODO: provide more Details)
 - Access the application using the [url](http://localhost:8050/bahmni/home/index.html)
 - Starting, Stopping and Restarting
 ```sh
+docker start emr
 docker stop bahmni
-docker rm bahmni
-docker restart bahmni
 ```
 
 ### Setting up developer machine
