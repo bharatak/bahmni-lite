@@ -31,10 +31,11 @@ docker run --name helper --rm --network=bahmni-network -e MYSQL_HOST=mysql -e MY
 docker run --name emr -p 8050:8050 -p 8000:8000 --network=bahmni-network -d bharatak/bahmni:latest
 ```
 - Access the application using the [url](http://localhost:8050/bahmni/home/index.html)
+- Video of Bahmni Lite installation is available [here](https://youtu.be/r9mRWSkqOgY)
 - Starting, Stopping and Restarting
 ```sh
 docker start emr
-docker stop bahmni
+docker stop emr
 ```
 
 ### Setting up developer machine
