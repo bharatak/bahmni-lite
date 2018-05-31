@@ -6,8 +6,8 @@ backup_original_dirs(){
     else
         mv /opt/bahmni-web/etc/bahmniapps /opt/bahmni-web/etc/bahmniapps-original
     fi
-
-    if [ -f "/opt/bahmni-web/etc/bahmni_config_original" ]; then
+    
+    if [ -f "/opt/bahmni-web/etc/bahmni-config-original" ]; then
         rm -rf /opt/bahmni-web/etc/bahmni_config
     else
         mv /opt/bahmni-web/etc/bahmni_config /opt/bahmni-web/etc/bahmni-config-original
